@@ -1,3 +1,5 @@
+# NOTE: You might want to change the name of the environment.
+# NOTE: You might also want to change the prefix (at end of file).
 name: rd
 channels:
   - pytorch
