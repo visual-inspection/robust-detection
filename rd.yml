@@ -1,4 +1,4 @@
-name: qscore
+name: rd
 channels:
   - pytorch
   - nvidia
@@ -224,4 +224,4 @@ dependencies:
       - tzdata==2024.1
       - werkzeug==3.0.1
       - wrapt==1.14.1
-prefix: /home/qsen/miniconda3/envs/qscore
+prefix: /tmp/envs/rd
