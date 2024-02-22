@@ -15,13 +15,14 @@ class FeatureExtractor():
     def __init__(self, in_folder: Path, out_folder: Path) -> None:
         self.in_folder = in_folder
         self.out_folder = out_folder
+        self.images: list[Path] = []
 
 
-    def extract_from(self, images: Iterable[Path], save_numpy: bool=True, save_csv: bool=True):
+    def extract(self) -> ndarray:
         raise NotImplementedError('Abstract Method.')
 
 
-    def save(self, images: Iterable[Path], outfile_stemname: str, data: ndarray, save_numpy: bool=True, save_csv: bool=True) -> Self:
+    def save(self, outfile_stemname: str, data: ndarray, save_numpy: bool=True, save_csv: bool=True) -> Self:
         if not (save_csv or save_numpy):
             raise Exception('You should save something.')
         
