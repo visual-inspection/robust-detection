@@ -40,8 +40,8 @@ class FeatureExtractor_ConvNeXTV2(FeatureExtractor):
 
 if __name__ == '__main__':
     fe = FeatureExtractor_ConvNeXTV2(
-        in_folder=Path('/mnt/d/lnu/Datasets/mvtec_anomaly_detection/cable/train/good'),
-        out_folder=Path('/mnt/d'))
+        in_folder=Path('/tmp/input'),
+        out_folder=Path('/tmp/output'))
 
     fe.load_images(verbose=True)
     data = fe.extract(swap_channels_last=True)
