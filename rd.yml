@@ -232,4 +232,4 @@ dependencies:
       - werkzeug==3.0.1
       - wrapt==1.14.1
       - git+https://github.com/dprelogo/SPax.git@5b0fab6dc34d8448c4cf32ff9f3cfe32720bf98b
-prefix: /home/qsen/miniconda3/envs
+prefix: /tmp/envs/rd
