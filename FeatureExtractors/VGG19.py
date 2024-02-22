@@ -48,6 +48,12 @@ class FeatureExtractor_VGG19(FeatureExtractor):
     
     @property
     def use_linear_cnn_act(self) -> bool:
+        """
+        This only has an effect if a custom list of output layers is
+        used. If so, then the activation on those layers which are Conv2D
+        will be set to linear instead. Other layers are not affected.
+        Note that this option is initialized to ``True`` by default.
+        """
         return self.use_linear_cnn_act
     
     @use_linear_cnn_act.setter
@@ -55,12 +61,13 @@ class FeatureExtractor_VGG19(FeatureExtractor):
         self._use_linear_cnn_act = use
         return self
     
-    def extract_from(self, images: np.Iterable[Path], outfile_name: str, save_numpy: bool = True, save_csv: bool = True):
-        model = self.model if len(self.output_layers) == 0 else Model(self.model.inputs, list([l.output for l in self.output_layers]))
+    def extract_from(self, images: np.Iterable[Path], outfile_stemname: str, save_numpy: bool = True, save_csv: bool = True) -> Self:
+        output_layers = self.output_layers
+        if self.use_linear_cnn_act:
+            for layer in filter(lambda layer: isinstance(layer, Conv2D), output_layers):
+                layer.activation = linear
 
-        if not (save_csv or save_numpy):
-            raise Exception('You should save something.')
-
+        model = self.model if len(output_layers) == 0 else Model(self.model.inputs, list([l.output for l in output_layers]))
         images = list(images)
 
         image_inputs: list[ndarray] = []
