@@ -8,7 +8,6 @@ from pathlib import Path
 from numpy import ndarray
 from typing import Self
 import numpy as np
-import pandas as pd
 
 
 
@@ -85,13 +84,5 @@ class FeatureExtractor_VGG19(FeatureExtractor):
             results = [results]
 
         all_features = Concatenate()(list([Flatten()(r) for r in results]))
-        
-        if save_numpy:
-            outfile_numpy = self.out_folder.joinpath(f'{outfile_name}.npy')
-            np.save(file=outfile_numpy, arr=all_features)
-        
-        if save_csv:
-            outfile_pandas = self.out_folder.joinpath(f'{outfile_name}.csv')
-            df = pd.DataFrame(np.transpose(all_features))
-            df.columns = list([f'i_{file.stem}' for file in images])
-            df.to_csv(path_or_buf=outfile_pandas, index=False)
+
+        return self.save(images=images, outfile_stemname=outfile_stemname, data=all_features, save_numpy=save_numpy, save_csv=save_csv)
