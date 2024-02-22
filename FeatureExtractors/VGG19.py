@@ -1,9 +1,9 @@
 from FeatureExtractor import FeatureExtractor
-from keras_core.applications.vgg19 import VGG19, preprocess_input
-from keras_core.layers import Layer, Flatten, Concatenate, Conv2D, MaxPool2D
-from keras_core.models import Model
-from keras_core.activations import linear
-from keras_core.preprocessing.image import load_img, img_to_array
+from keras.applications.vgg19 import VGG19, preprocess_input
+from keras.layers import Layer, Flatten, Concatenate, Conv2D, MaxPool2D
+from keras.models import Model
+from keras.activations import linear
+from keras.preprocessing.image import load_img, img_to_array
 from pathlib import Path
 from numpy import ndarray
 from typing import Self
@@ -91,7 +91,7 @@ class FeatureExtractor_VGG19(FeatureExtractor):
 if __name__ == '__main__':
     fe = FeatureExtractor_VGG19(
         in_folder=Path('/tmp/input'),
-        out_folder=Path('/temp/output'))
+        out_folder=Path('/tmp/output'))
 
     fe.output_layers = [fe.conv_layers[-1]]
     fe.use_linear_cnn_act = True
