@@ -1,4 +1,4 @@
-from .FeatureExtractor import FeatureExtractor
+from FeatureExtractor import FeatureExtractor
 from keras_core.applications.vgg19 import VGG19, preprocess_input
 from keras_core.layers import Layer, Flatten, Concatenate, Conv2D, MaxPool2D
 from keras_core.models import Model
@@ -42,6 +42,8 @@ class FeatureExtractor_VGG19(FeatureExtractor):
     
     @output_layers.setter
     def output_layers(self, use_layers: list[Layer]) -> Self:
+        if not isinstance(use_layers, list):
+            raise Exception("The argument output_layers must be a list.")
         self._output_layers = use_layers
         return self
     
@@ -53,24 +55,23 @@ class FeatureExtractor_VGG19(FeatureExtractor):
         will be set to linear instead. Other layers are not affected.
         Note that this option is initialized to ``True`` by default.
         """
-        return self.use_linear_cnn_act
+        return self._use_linear_cnn_act
     
     @use_linear_cnn_act.setter
     def use_linear_cnn_act(self, use: bool) -> Self:
         self._use_linear_cnn_act = use
         return self
     
-    def extract_from(self, images: np.Iterable[Path], outfile_stemname: str, save_numpy: bool = True, save_csv: bool = True) -> Self:
+    def extract(self) -> ndarray:
         output_layers = self.output_layers
         if self.use_linear_cnn_act:
             for layer in filter(lambda layer: isinstance(layer, Conv2D), output_layers):
                 layer.activation = linear
 
         model = self.model if len(output_layers) == 0 else Model(self.model.inputs, list([l.output for l in output_layers]))
-        images = list(images)
 
         image_inputs: list[ndarray] = []
-        for file in images:
+        for file in self.images:
             filename = str(file.resolve())
             print(f'Reading file: {file.name}')
             img = load_img(path=filename, target_size=(224, 224))
@@ -83,6 +84,18 @@ class FeatureExtractor_VGG19(FeatureExtractor):
         if not isinstance(results, list):
             results = [results]
 
-        all_features = Concatenate()(list([Flatten()(r) for r in results]))
+        return Concatenate()(list([Flatten()(r) for r in results])).cpu().numpy()
 
-        return self.save(images=images, outfile_stemname=outfile_stemname, data=all_features, save_numpy=save_numpy, save_csv=save_csv)
+
+
+if __name__ == '__main__':
+    fe = FeatureExtractor_VGG19(
+        in_folder=Path('/tmp/input'),
+        out_folder=Path('/temp/output'))
+
+    fe.output_layers = [fe.conv_layers[-1]]
+    fe.use_linear_cnn_act = True
+
+    fe.load_images(verbose=True)
+    data = fe.extract()
+    fe.save(outfile_stemname='train-good-VGG19', data=data, save_numpy=True, save_csv=True)

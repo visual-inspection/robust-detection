@@ -1,11 +1,12 @@
 from transformers import AutoImageProcessor, ConvNextV2Model
 from pathlib import Path
 from PIL import Image
+from numpy import ndarray
 import torch
 import numpy as np
 
 
-from .FeatureExtractor import FeatureExtractor
+from FeatureExtractor import FeatureExtractor
 
 
 class FeatureExtractor_ConvNeXTV2(FeatureExtractor):
@@ -17,10 +18,10 @@ class FeatureExtractor_ConvNeXTV2(FeatureExtractor):
         self.image_processor = AutoImageProcessor.from_pretrained("facebook/convnextv2-huge-22k-512")
 
 
-    def extract_from(self, images: np.Iterable[Path], outfile_stemname: str, save_numpy: bool = True, save_csv: bool = True, swap_channels_last: bool = True):
+    def extract(self, swap_channels_last: bool = True) -> ndarray:
         results: list = []
         with torch.no_grad():
-            for file in images:
+            for file in self.images:
                 print(f'Processing file: {file.name}')
                 inputs = self.image_processor(Image.open(fp=file), return_tensors='pt').to(self.device)
 
@@ -34,5 +35,14 @@ class FeatureExtractor_ConvNeXTV2(FeatureExtractor):
                 temp = temp.flatten()
                 results.append(temp)
         
-        all_features = np.stack(results)
-        return self.save(images=images, outfile_stemname=outfile_stemname, data=all_features, save_numpy=save_numpy, save_csv=save_csv)
+        return np.stack(results)
+
+
+if __name__ == '__main__':
+    fe = FeatureExtractor_ConvNeXTV2(
+        in_folder=Path('/mnt/d/lnu/Datasets/mvtec_anomaly_detection/cable/train/good'),
+        out_folder=Path('/mnt/d'))
+
+    fe.load_images(verbose=True)
+    data = fe.extract(swap_channels_last=True)
+    fe.save(outfile_stemname='train-good-CNv2', data=data, save_numpy=True, save_csv=True)
