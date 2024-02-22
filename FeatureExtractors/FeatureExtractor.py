@@ -3,6 +3,7 @@ from typing import Iterable
 from numpy import ndarray, save, transpose
 from pandas import DataFrame
 from typing import Self
+from re import compile, IGNORECASE
 
 
 
@@ -31,10 +32,16 @@ class FeatureExtractor():
         if save_csv:
             outfile_pandas = self.out_folder.joinpath(f'{outfile_stemname}.csv')
             df = DataFrame(transpose(data))
-            df.columns = list([f'i_{file.stem}' for file in images])
+            df.columns = list([f'i_{file.stem}' for file in self.images])
             df.to_csv(path_or_buf=outfile_pandas, index=False)
 
 
-    @staticmethod
-    def files(folder: str, exts: Iterable[str]=['bmp', 'gif', 'jpg', 'jpeg', 'png']) -> Iterable[Path]:
-        return Path(folder).glob(pattern=f'*.{{ {','.join(exts)} }}')
+    def load_images(self, exts: Iterable[str]=['bmp', 'gif', 'jpe?g', 'png', 'tiff?', 'webp'], verbose: bool = True) -> Iterable[Path]:
+        self.images.clear()
+
+        regex = compile(pattern=f'{"|".join(map(lambda ext: f"({ext})", exts))}$', flags=IGNORECASE)
+        for file in self.in_folder.glob('*'):
+            if bool(regex.search(file.name)):
+                if verbose:
+                    print(f'Adding image: {file.name}')
+                self.images.append(file)
