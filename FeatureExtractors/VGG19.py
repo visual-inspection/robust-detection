@@ -58,6 +58,9 @@ class FeatureExtractor_VGG19(FeatureExtractor):
     def extract_from(self, images: np.Iterable[Path], outfile_name: str, save_numpy: bool = True, save_csv: bool = True):
         model = self.model if len(self.output_layers) == 0 else Model(self.model.inputs, list([l.output for l in self.output_layers]))
 
+        if not (save_csv or save_numpy):
+            raise Exception('You should save something.')
+
         images = list(images)
 
         image_inputs: list[ndarray] = []
@@ -75,6 +78,7 @@ class FeatureExtractor_VGG19(FeatureExtractor):
             results = [results]
 
         all_features = Concatenate()(list([Flatten()(r) for r in results]))
+        
         if save_numpy:
             outfile_numpy = self.out_folder.joinpath(f'{outfile_name}.npy')
             np.save(file=outfile_numpy, arr=all_features)
