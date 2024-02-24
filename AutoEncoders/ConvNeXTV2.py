@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchsummary import summary
 from numpy import load, ndarray, swapaxes
 from sklearn.preprocessing import StandardScaler
+from typing import Tuple
 
 
 
@@ -100,6 +101,28 @@ class Reshape(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         x = x.reshape(shape=(x.shape[0], *self.shape))
         return x
+
+
+class Split(nn.Module):
+    def __init__(self, *args: nn.Module, **kwargs) -> None:
+        super().__init__()
+
+        self.modules = list(args)
+        if len(self.modules) == 0:
+            raise Exception('Need at least one module.')
+        
+    def forward(self, x: Tensor) -> Tensor:
+        temp = torch.hstack(list([m(x) for m in self.modules]))
+        return temp
+
+
+class MinPool2D(nn.Module):
+    def __init__(self, kernel_size: int | Tuple[int, ...], stride: int | Tuple[int, ...] | None = None, padding: int | Tuple[int, ...] = 0, dilation: int | Tuple[int, ...] = 1, return_indices: bool = False, ceil_mode: bool = False) -> None:
+        super().__init__()
+        self.m2d = nn.MaxPool2d(kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation, return_indices=return_indices, ceil_mode=ceil_mode)
+    
+    def forward(self, x: Tensor) -> Tensor:
+        return -self.m2d(-x)
 
 
 class Depth_AE(nn.Module):
