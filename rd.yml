@@ -226,6 +226,7 @@ dependencies:
       - tensorflow-io-gcs-filesystem==0.36.0
       - termcolor==2.4.0
       - tokenizers==0.15.2
+      - torchsummary==1.5.1
       - tqdm==4.66.2
       - transformers==4.37.2
       - tzdata==2024.1
