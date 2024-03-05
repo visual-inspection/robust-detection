@@ -1,0 +1,3 @@
+[submodule "rd/bpn"]
+	path = rd/bpn
+	url = https://github.com/MrShoenel/batch-pit-normalization.git
