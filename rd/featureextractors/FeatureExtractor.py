@@ -1,3 +1,8 @@
+"""
+File: FeatureExtractor.py
+Author: Sebastian Hönel
+"""
+
 from pathlib import Path
 from typing import Iterable
 from numpy import ndarray, save, transpose
@@ -13,6 +18,7 @@ class FeatureExtractor():
     common functionality, as well as a common interface for its sub-classes.
     """
     def __init__(self, in_folder: Path, out_folder: Path) -> None:
+        assert isinstance(in_folder, Path) and isinstance(out_folder, Path)
         self.in_folder = in_folder
         self.out_folder = out_folder
         self.images: list[Path] = []
@@ -25,6 +31,9 @@ class FeatureExtractor():
     def save(self, outfile_stemname: str, data: ndarray, save_numpy: bool=True, save_csv: bool=True) -> Self:
         if not (save_csv or save_numpy):
             raise Exception('You should save something.')
+        
+        # Make sure the out-folder exists, recursively
+        self.out_folder.mkdir(parents=True, exist_ok=True)
         
         if save_numpy:
             outfile_numpy = self.out_folder.joinpath(f'{outfile_stemname}.npy')
