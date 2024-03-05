@@ -1,10 +1,12 @@
 import torch
-from torch import cuda, is_tensor, manual_seed, nn, Tensor
+import numpy as np
+from torch import cuda, is_tensor, manual_seed, nn, Tensor, empty, fill, device, nan
 from torch.utils.data import DataLoader, Dataset
 from torchsummary import summary
 from numpy import load, ndarray, swapaxes
 from sklearn.preprocessing import StandardScaler
-from typing import Tuple
+from typing import Tuple, Callable, Sequence, Self
+from math import sqrt
 
 
 
@@ -151,7 +153,7 @@ class Depth_AE(nn.Module):
             # Each filter has 4x4x2816+1=45,057 weights+bias and produces 13x13=169 values
             # We have 352 filters resulting in 15,860,064 weights/biases
             # We have 352x13x13=59,488 outputs
-            nn.Conv2d(in_channels=2816, out_channels=352, kernel_size=(4,4), stride=(1,1), padding=0, bias=True),
+            nn.Conv2d(in_channels=2816, out_channels=44, kernel_size=(4,4), stride=(1,1), padding=0, bias=True),
 
             nn.SiLU(inplace=True),
 
@@ -160,21 +162,24 @@ class Depth_AE(nn.Module):
             # 1x13x13 (Computes a max for each depth-wise feature). While this is what we want,
             # it reduces the amount of features perhaps too drastically.
             #nn.MaxPool3d(kernel_size=(352,1,1), stride=(1,1,1))
-
-            # 352x11x11 (Computes max of 352 13x13 patches, i.e., for each depth-slice/channel).
-            # While this can work, this is not what we want, as we consider a feature along a
-            # depth-axis.
-            nn.MaxPool2d(kernel_size=(3,3), stride=(1,1), padding=0),
+            Split(
+                # 352x11x11 (Computes max of 352 13x13 patches, i.e., for each depth-slice/channel).
+                # While this can work, this is not what we want, as we consider a feature along a
+                # depth-axis.
+                MinPool2D(kernel_size=(3,3), stride=(1,1), padding=0),
+                nn.AvgPool2d(kernel_size=(3,3), stride=(1,1), padding=0),
+                nn.MaxPool2d(kernel_size=(3,3), stride=(1,1), padding=0)
+            ),
 
             # Here we learn 128 filters, each applied to a 352x1x1 slice. We will get
             # 128x11x11=15,488 features out of this.
-            nn.Conv2d(in_channels=352, out_channels=128, kernel_size=(1,1), stride=1, bias=True),
+            nn.Conv2d(in_channels=3*44, out_channels=132, kernel_size=(1,1), stride=1, bias=True, groups=3),
 
 
             #####  BOTTLENECK HERE  #####
             #####  BOTTLENECK HERE  #####
             #####  BOTTLENECK HERE  #####
-            # Once trained, we shall cut of the AE between this last convolution and the activation!
+            # Once trained, we shall cut of the AE between this last convolution and the next activation!
 
             nn.SiLU(inplace=True),
 
@@ -182,7 +187,7 @@ class Depth_AE(nn.Module):
 
             # Now we have to come back to 2816x16x16 from 128x11x11
 
-            nn.ConvTranspose2d(in_channels=128, out_channels=352, kernel_size=(5,5), stride=1),
+            nn.ConvTranspose2d(in_channels=132, out_channels=352, kernel_size=(5,5), stride=1),
             nn.SiLU(inplace=True),
 
             # nn.Flatten(),
@@ -200,7 +205,7 @@ class Depth_AE(nn.Module):
         return self.ae(x)
 
 
-model = Depth_AE()
+model = Depth_AE().eval()
 
 summary(model=model, batch_size=32, input_size=(2816, 16, 16))
 
@@ -214,9 +219,9 @@ class RMLSELoss(nn.Module):
         return torch.sqrt(torch.mean(torch.log(1.0 + 1e-20 + (pred - actual)**2)))
 
 
-learning_rate = 1e-3
+learning_rate = 5e-4
 loss_fn = nn.MSELoss() # RMLSELoss()
-optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, amsgrad=True)
 
 from torch.optim import Optimizer
 
@@ -273,13 +278,36 @@ class EarlyStopper:
                 return True
         return False
 
-early_stopper = EarlyStopper(patience=35, min_delta=1e-2)
 
-epochs = 20000
-for t in range(epochs):
-    print(f"Epoch {t+1}\n-------------------------------")
-    train_loop(loader=train_loader, model=model, loss_fn=loss_fn, optimizer=optimizer)
-    test_loss = test_loop(loader=test_loader, model=model, loss_fn=loss_fn)
-    if early_stopper.early_stop(test_loss):
-        torch.save(obj=model.state_dict(), f=f'./{Depth_AE.__name__}.torch')
-        break
+
+class InferenceDepthAE(nn.Module):
+    def __init__(self, model: Depth_AE, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.fe = nn.Sequential(*model.ae[0:7])
+        assert isinstance(self.fe[-1], nn.Conv2d)
+        assert isinstance(self.fe[-2], Split)
+        self.fe.train = False
+        self.train = False
+    
+    def forward(self, x: Tensor) -> Tensor:
+        return self.fe.forward(x)
+
+
+if __name__ == '__main__':
+
+    model = Depth_AE()
+    model.load_state_dict(state_dict=torch.load(f'./{Depth_AE.__name__}.torch'))
+    idae = InferenceDepthAE(model=model)
+    temp = idae.forward(torch.tensor(train_dataset.raw).to(device))
+
+    early_stopper = EarlyStopper(patience=35, min_delta=1e-2)
+
+    epochs = 20000
+    for t in range(epochs):
+        print(f"Epoch {t+1}\n-------------------------------")
+        train_loop(loader=train_loader, model=model, loss_fn=loss_fn, optimizer=optimizer)
+        test_loss = test_loop(loader=test_loader, model=model, loss_fn=loss_fn)
+        if early_stopper.early_stop(test_loss):
+            torch.save(obj=model.state_dict(), f=f'./{Depth_AE.__name__}.torch')
+            break
