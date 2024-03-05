@@ -14,7 +14,7 @@ from re import compile, IGNORECASE
 
 class FeatureExtractor():
     """
-    This is the mother of all feature extractors. It is meant to provide
+    This is the mother of all (file-based) feature extractors. It is meant to provide
     common functionality, as well as a common interface for its sub-classes.
     """
     def __init__(self, in_folder: Path, out_folder: Path) -> None:
