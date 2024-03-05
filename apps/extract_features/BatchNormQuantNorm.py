@@ -11,7 +11,7 @@ Author: Sebastian Hönel
 """
 
 from torch import cuda
-from rd.pipeline.BnQn import BnQn
+from rd.featureextractors.BatchNormQuantNorm import BnQn
 
 
 if __name__ == '__main__':
