@@ -1,13 +1,14 @@
 import numpy as np
 import torch
-from torch import nn, cuda, device, Tensor
+from torch import nn, device, Tensor
 from rd.tools.Split import Split
+from rd.tools.Reshape import Reshape
 
 
 import numpy as np
 import torch
-from torch import nn, Tensor, empty, fill, device, nan
-from typing import Callable, Self, Self, Sequence, Optional
+from torch import nn, Tensor, device
+from typing import Self, Self, Sequence, Optional
 from math import sqrt
 from pathlib import Path
 
@@ -41,23 +42,24 @@ class BnQn1d(nn.Module):
 
         # We'll flatten the data and not assume any more dimensions.
         # This is the first copy that goes through regular BN.
-        # If online learning, then we need affine=True
-        self.bn1 = nn.BatchNorm1d(num_features=self.num_feats, affine=self.online_learning)
+        self.bn1 = nn.BatchNorm1d(num_features=self.num_feats, device=dev)
 
         # Here's the second copy that'll be followed by another ordinary BN.
         self.qn = BatchPitNorm1d(num_features=self.num_feats, num_pit_samples=2500, take_num_samples_when_full=0, dev=dev, normal_backtransform=False, trainable_bandwidths=False)
-        self.bn2 = nn.BatchNorm1d(num_features=self.num_feats, affine=self.online_learning)
+        self.bn2 = nn.BatchNorm1d(num_features=self.num_feats, device=dev)
 
-        self.model = Split(
-            self.bn1,
-            nn.Sequential(self.qn, self.bn2),
-            stack='v') # Stack the resulting tensors vertically!
+        self.model = nn.Sequential(
+            Reshape(shape=(self.num_feats,)),
+            Split(
+                'v', # Stack the resulting tensors vertically!
+                self.bn1,
+                nn.Sequential(self.qn, self.bn2)))
         
         if isinstance(load_data, Path):
             temp: np.ndarray = np.load(file=load_data)
             # Reshape:
             temp = temp.reshape((temp.shape[0], self.num_feats))
-            self._init_from_data(data=torch.tensor(temp))
+            self._init_from_data(data=torch.tensor(temp).to(device=dev))
     
     def _init_from_data(self, data: Tensor):
         assert len(data.shape) == 2
@@ -73,7 +75,9 @@ class BnQn1d(nn.Module):
         self.qn.fill(data=data)
         # .. and transform the data so that it can be used to
         # initialize the adjacent BN:
+        self.qn.eval()
         res = self.qn.forward(x=data)
+        self.qn.train(mode=True)
 
         # Init the 2nd BN:
         sm = torch.std_mean(input=res, dim=0)
@@ -82,7 +86,7 @@ class BnQn1d(nn.Module):
         bn2_params[1].data = nn.parameter.Parameter(sm[1])
     
     def forward(self, x: Tensor) -> Tensor:
-        return self.model.forward(x=x)
+        return self.model.forward(x)
     
     def eval(self) -> Self:
         self.model.eval()

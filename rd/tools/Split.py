@@ -13,7 +13,7 @@ class Split(nn.Module):
     During forward, each module's forward() is called. The results are than stacked
     horizontally or vertically (and, therefore, are  expected to be compatible).
     """
-    def __init__(self, stack: Literal['h', 'v'] = 'h', *args: nn.Module, **kwargs) -> None:
+    def __init__(self, stack: Literal['h', 'v'], *args: nn.Module, **kwargs) -> None:
         super().__init__()
 
         self.stack = stack
