@@ -1,4 +1,12 @@
-from FeatureExtractor import FeatureExtractor
+"""
+File: VGG19.py
+Author: Sebastian Hönel
+"""
+
+# TODO: Replace implementation with Pytorch if desired.
+
+
+from .FeatureExtractor import FeatureExtractor
 from keras.applications.vgg19 import VGG19, preprocess_input
 from keras.layers import Layer, Flatten, Concatenate, Conv2D, MaxPool2D
 from keras.models import Model
@@ -85,17 +93,3 @@ class FeatureExtractor_VGG19(FeatureExtractor):
             results = [results]
 
         return Concatenate()(list([Flatten()(r) for r in results])).cpu().numpy()
-
-
-
-if __name__ == '__main__':
-    fe = FeatureExtractor_VGG19(
-        in_folder=Path('/tmp/input'),
-        out_folder=Path('/tmp/output'))
-
-    fe.output_layers = [fe.conv_layers[-1]]
-    fe.use_linear_cnn_act = True
-
-    fe.load_images(verbose=True)
-    data = fe.extract()
-    fe.save(outfile_stemname='train-good-VGG19', data=data, save_numpy=True, save_csv=True)
