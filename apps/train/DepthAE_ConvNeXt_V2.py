@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from torch.optim import Optimizer
 from torchsummary import summary
 from rd.data.ConvNeXt_V2 import Dataset_ConvNeXt_V2
-from rd.autoencoders.ConvNeXt_V2_DepthAE import DepthAE, InferenceDepthAE
+from rd.autoencoders.ConvNeXt_V2_DepthAE import DepthAE
 from rd.tools.EarlyStopper import EarlyStopper
 
 
