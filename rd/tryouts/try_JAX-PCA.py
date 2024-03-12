@@ -6,9 +6,11 @@ In this current configuration, we get about a 66% accuracy with 0.30 Kappa (bad)
 """
 
 from os import environ
+
 environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
 
 import jax
+
 jax.config.update('jax_platform_name', 'cpu')
 d = jax.devices('gpu')
 
@@ -32,23 +34,23 @@ test_good_t = pca.transform(test_good)
 test_defect_t = pca.transform(test_defect)
 
 X = np.concatenate([test_good_t, test_defect_t], axis=1).transpose()
-Y = np.concatenate([
-    np.array([0] * test_good.shape[1]),
-    np.array([1] * test_defect.shape[1])])
+Y = np.concatenate(
+    [np.array([0] * test_good.shape[1]),
+     np.array([1] * test_defect.shape[1])])
 Y = Y.reshape((Y.shape[0], 1))
 
-
 from sklearn.model_selection import train_test_split
-X_train, X_test, Y_train, Y_test = train_test_split(
-    X, Y, test_size=0.5, random_state=1337)
+
+X_train, X_test, Y_train, Y_test = train_test_split(X,
+                                                    Y,
+                                                    test_size=0.5,
+                                                    random_state=1337)
 
 from sklearn.preprocessing import StandardScaler
 
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X=X_train)
 X_test_scaled = scaler.transform(X=X_test)
-
-
 
 from sklearn.ensemble import RandomForestClassifier
 
